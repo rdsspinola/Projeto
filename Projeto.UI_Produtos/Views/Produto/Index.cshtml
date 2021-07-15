@@ -1,0 +1,222 @@
+﻿@*@model IList<Produto>;*@
+
+@{ ViewBag.Title = "..:: Página de cadastro ::..";}
+
+<h4>Cadastro de Produtos</h4>
+<hr />
+
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <input type="hidden" name="id" id="id" />
+            <label for="nome">Nome:</label>
+            <input type="text" class="form-control" id="nome">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <label for="descricao">Descriçao:</label>
+            <input type="text" class="form-control" id="descricao">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <label for="categoria">Categoria de Produto:</label>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            @Html.DropDownList("categorias", null, "Selecione uma Categoria", new { @class = "form-control" })
+        </div>
+        <div class="col">
+            <label><input type="checkbox" id="perecivel"> Perecível?</label>
+        </div>
+        <div class="col">
+            <button type="button" class="btn btn-primary" id="cadastrar" onclick="validaForm()">Cadastrar</button>
+            <button type="button" class="btn btn-danger" id="cancelar" cancelar="1" disabled>Cancelar</button>
+        </div>
+    </div>
+    <br />
+    <hr />
+    <br />
+    <table class="table table-hover table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Nome</th>
+                <th>Descrição</th>
+                <th>Categoria do Produto</th>
+                <th>Ativo</th>
+                <th>Perecível</th>
+                <th>Ação</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var produto in ViewBag.produtos)
+            {
+                <tr>
+                    <td>@produto.Produto.Id</td>
+                    <td>@produto.Produto.Nome</td>
+                    <td>@produto.Produto.Descricao</td>
+                    <td>@produto.cNome</td>
+                    <td>@(produto.Produto.Ativo ? "Ativo" : "Inativo") </td>
+                    <td>@(produto.Produto.Perecivel ? "Sim" : "Não")</td>
+                    <td>
+                        <button type="button" class="btn btn-success" atualiza="1" onclick="atualizaProduto('@(produto.Produto.Id)')">Atualizar</button>
+                        <button type="button" class="btn btn-danger" deleta="1" onclick="deletaProduto('@(produto.Produto.Id)')">Deletar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- Modal -->
+    <div class="modal fade" id="myModal" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Erro no Preenchimento</h4>
+                </div>
+                <div class="modal-body">
+                    <p id="msg" class="red">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script type="text/javascript" language="JavaScript">
+        function validaForm() {
+            nome = $('#nome').val();
+            descricao = $('#descricao').val();
+            categoria = $('#categorias').val();
+            perecivel = $('#perecivel').prop('checked');
+            erro = false;
+            msg = "";
+
+            if (nome == "") { msg = "* O Campo Nome Deve Ser Preenchido.<br>"; erro = true; }
+            if (descricao == "") { msg += "* O Campo Descrição Deve Ser Preenchido.<br>"; erro = true; }
+            if (categoria == "") { msg += "* O Campo Categoria Deve Ser Preenchido.<br>"; erro = true; }
+
+            if (erro) {
+                msg += "</p><br /><span>O Prenchimento dos Seguinte(s) Campos Deve Ser Corrigido.</span>";
+                $("#msg").html(msg);
+                $("#myModal").modal();
+                return;
+            }
+
+            var data = {
+                "Id": "",
+                "nome": nome,
+                "descricao": descricao,
+                "categoria": categoria,
+                "perecivel": perecivel==true?"1":"0"
+            }
+
+            data.Id = $("#id").val() != "" ? $("#id").val():""
+
+            $.ajax({
+                method: 'POST',
+                dataType: 'json',
+                contentType: 'application/json',
+                timeout: 10000,
+                data: JSON.stringify(data),
+                url: '/produto/addproduto',
+                success: function (response) {
+                    $('#nome').val("");
+                    $('#descricao').val("");
+                    $('#categorias').val("");
+                    $('#perecivel').prop('checked', false);
+                    document.location = "/produto/index";
+                },
+                error: function (request, status, error) {
+                    $("#msg").html("Impossível Enviar o Cadastrp");
+                    $("#myModal").modal();
+                }
+            })
+        }
+
+        function deletaProduto(id) {
+            var data = {
+                "id": id
+            }
+
+            $.ajax({
+                method: 'POST',
+                dataType: 'json',
+                contentType: 'application/json',
+                timeout: 10000,
+                data: JSON.stringify(data),
+                url: '/produto/deletaproduto',
+                success: function (response) {
+                    $('#nome').val("");
+                    $('#descricao').val("");
+                    $('#categorias').val("");
+                    $('#perecivel').prop('checked', false);
+                    document.location = "/produto/index";
+                },
+                error: function (request, status, error) {
+                    $("#msg").html("Impossível Deletar o Produto");
+                    $("#myModal").modal();
+                }
+            })
+        }
+
+        function atualizaProduto(id) {
+            //$('button[atualiza]').removeAttr("disabled");
+            $('button[atualiza]').attr("disabled", 1)
+            $('button[deleta]').attr("disabled", 1)
+
+            $('button[cancelar]').removeAttr("disabled");
+
+            $("#id").val(id);
+
+            var data = {
+                "id": id
+            }
+
+            $.ajax({
+                method: 'POST',
+                dataType: 'json',
+                contentType: 'application/json',
+                timeout: 10000,
+                data: JSON.stringify(data),
+                url: '/produto/buscaproduto',
+                success: function (response) {
+                    $('#nome').val(response.Nome);
+                    $('#descricao').val(response.Descricao);
+                    $('#categorias').val(response.CategoriaID+"");
+                    $('#perecivel').prop('checked', response.Perecivel);
+                },
+                error: function (request, status, error) {
+                    $("#msg").html("Impossível Alterar o Produto");
+                    $("#myModal").modal();
+
+                    $('button[atualiza]').removeAttr("disabled", 1)
+                    $('button[deleta]').removeAttr("disabled", 1)
+
+                    $('button[cancelar]').attr("disabled");
+
+                    $('#nome').val("");
+                    $('#descricao').val("");
+                    $('#categorias').val("");
+                    $('#perecivel').prop('checked', false);
+
+                    $("#id").val("");
+                }
+            })
+
+        }
+    </script>
+}
